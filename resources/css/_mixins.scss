@@ -1,0 +1,416 @@
+// ===================================================================
+// MIXINS & HELPER FUNCTIONS
+// ===================================================================
+
+// RESPONSIVE BREAKPOINTS
+// ===================================================================
+
+// Mixin: Responsive Media Query (Mobile First)
+@mixin respond-to($breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  }
+  
+  // Mixin: Media Query Max Width
+  @mixin respond-to-max($breakpoint) {
+    @media (max-width: map-get($breakpoints, $breakpoint) - 1px) {
+      @content;
+    }
+  }
+  
+  // FLEXBOX & GRID
+  // ===================================================================
+  
+  // Flexbox Center
+  @mixin flex-center($direction: row, $gap: 0) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: $direction;
+    @if $gap > 0 {
+      gap: $gap;
+    }
+  }
+  
+  // Flexbox Column
+  @mixin flex-column($gap: 0) {
+    display: flex;
+    flex-direction: column;
+    @if $gap > 0 {
+      gap: $gap;
+    }
+  }
+  
+  // Flexbox Between
+  @mixin flex-between($gap: 0) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    @if $gap > 0 {
+      gap: $gap;
+    }
+  }
+  
+  // POSITIONING
+  // ===================================================================
+  
+  // Absolute Center
+  @mixin absolute-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  // Absolute Cover (Fill parent)
+  @mixin absolute-cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  // Fixed Cover
+  @mixin fixed-cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  // TEXT UTILITIES
+  // ===================================================================
+  
+  // Truncate Text (1 line)
+  @mixin truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  // Truncate Multiple Lines
+  @mixin truncate-lines($lines: 2) {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  // Text Selection
+  @mixin user-select($select: none) {
+    -webkit-user-select: $select;
+    -moz-user-select: $select;
+    -ms-user-select: $select;
+    user-select: $select;
+  }
+  
+  // ACCESSIBILITY
+  // ===================================================================
+  
+  // Focus Ring (Keyboard Navigation)
+  @mixin focus-ring($color: $primary-blue, $width: 2px) {
+    outline: $width solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba($color, 0.1), 0 0 0 ($width + 2px) $color;
+  }
+  
+  // Visually Hidden (Accessible)
+  @mixin visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border-width: 0 !important;
+  }
+  
+  // Clear Fix
+  @mixin clearfix {
+    &::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+  }
+  
+  // TYPOGRAPHY
+  // ===================================================================
+  
+  // Heading Reset
+  @mixin heading-reset {
+    margin: 0;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+  }
+  
+  // Text Overflow
+  @mixin text-overflow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  // TRANSFORMS & TRANSITIONS
+  // ===================================================================
+  
+  // Transition Mixin
+  @mixin transition($property: all, $duration: $transition-base) {
+    transition: $property $duration;
+  }
+  
+  // Transform Scale on Hover
+  @mixin hover-scale($scale: 1.05) {
+    transition: transform $transition-base;
+    
+    &:hover {
+      transform: scale($scale);
+    }
+  }
+  
+  // Transform Lift on Hover
+  @mixin hover-lift($offset: 4px) {
+    transition: transform $transition-base, box-shadow $transition-base;
+    
+    &:hover {
+      transform: translateY(-#{$offset});
+      box-shadow: $shadow-lg;
+    }
+  }
+  
+  // BACKGROUNDS & COLORS
+  // ===================================================================
+  
+  // Gradient Background
+  @mixin gradient($start-color, $end-color, $direction: 135deg) {
+    background: linear-gradient($direction, $start-color 0%, $end-color 100%);
+  }
+  
+  // Overlay
+  @mixin overlay($color: rgba(0, 0, 0, 0.5)) {
+    position: relative;
+    
+    &::before {
+      content: "";
+      @include absolute-cover;
+      background-color: $color;
+      z-index: 1;
+    }
+  }
+  
+  // BUTTONS & INTERACTIVE
+  // ===================================================================
+  
+  // Button Reset
+  @mixin btn-reset {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    text-align: left;
+    
+    &:focus {
+      outline: none;
+    }
+  }
+  
+  // Button Base
+  @mixin btn-base($padding: $spacing-sm $spacing-md, $font-size: $font-size-sm) {
+    @include btn-reset;
+    @include flex-center;
+    gap: 0.5rem;
+    padding: $padding;
+    font-size: $font-size;
+    font-weight: $font-weight-semibold;
+    border-radius: $border-radius-md;
+    transition: all $transition-base;
+    
+    &:focus {
+      @include focus-ring;
+    }
+  }
+  
+  // FORMS
+  // ===================================================================
+  
+  // Form Control Base
+  @mixin form-control-base {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: $font-size-sm;
+    font-family: $font-family-base;
+    border: 1px solid $form-control-border-color;
+    border-radius: $border-radius-md;
+    transition: all $transition-base;
+    background-color: $color-bg-primary;
+    color: $color-text-primary;
+    
+    &:focus {
+      border-color: $form-control-focus-color;
+      box-shadow: 0 0 0 3px rgba($primary-blue, 0.1);
+      outline: none;
+    }
+    
+    &:disabled {
+      background-color: $form-control-disabled-bg;
+      color: $gray-500;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    &::placeholder {
+      color: $form-control-placeholder-color;
+    }
+  }
+  
+  // Form Group
+  @mixin form-group {
+    margin-bottom: $spacing-md;
+  }
+  
+  // CARDS & CONTAINERS
+  // ===================================================================
+  
+  // Card Base
+  @mixin card-base {
+    border: $card-border-width solid $color-border;
+    border-radius: $border-radius-lg;
+    background-color: $color-bg-primary;
+    overflow: hidden;
+    transition: all $transition-base;
+    
+    &:hover {
+      box-shadow: $shadow-lg;
+    }
+  }
+  
+  // Box Shadow Mixin
+  @mixin box-shadow($shadow: $shadow-md) {
+    box-shadow: $shadow;
+  }
+  
+  // CONTAINER & LAYOUT
+  // ===================================================================
+  
+  // Container Query
+  @mixin container-max {
+    max-width: $container-max-width;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+  }
+  
+  // Aspect Ratio (Modern browsers)
+  @mixin aspect-ratio($width, $height) {
+    position: relative;
+    display: block;
+    
+    &::before {
+      content: "";
+      display: block;
+      padding-bottom: ($height / $width) * 100%;
+    }
+    
+    > * {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+  }
+  
+  // Grid Utilities
+  // ===================================================================
+  
+  // Grid Center
+  @mixin grid-center {
+    display: grid;
+    place-items: center;
+  }
+  
+  // Auto Grid
+  @mixin auto-grid($min-width: 200px, $gap: $spacing-md) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+    gap: $gap;
+  }
+  
+  // UTILITY FUNCTIONS
+  // ===================================================================
+  
+  // Strip Unit
+  @function strip-unit($number) {
+    @if type-of($number) == "number" and not unitless($number) {
+      @return $number / ($number * 0 + 1);
+    }
+    @return $number;
+  }
+  
+  // Rem Converter
+  @function rem($pixels) {
+    @return (strip-unit($pixels) / 16) * 1rem;
+  }
+  
+  // Responsive Font Size
+  @mixin responsive-font-size($min-size, $max-size, $min-width: 320px, $max-width: 1440px) {
+    font-size: $min-size;
+    
+    @media (min-width: $min-width) {
+      font-size: calc(#{$min-size} + (#{strip-unit($max-size)} - #{strip-unit($min-size)}) * ((100vw - #{$min-width}) / (#{strip-unit($max-width)} - #{strip-unit($min-width)})));
+    }
+    
+    @media (min-width: $max-width) {
+      font-size: $max-size;
+    }
+  }
+  
+  // ANIMATION UTILITIES
+  // ===================================================================
+  
+  // Generate Delay Classes
+  @mixin animation-delay($count: 5) {
+    @for $i from 1 through $count {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 100}ms;
+      }
+    }
+  }
+  
+  // PRINT STYLES
+  // ===================================================================
+  
+  @mixin print-styles {
+    @media print {
+      @content;
+    }
+  }
+  
+  // COLOR UTILITIES
+  // ===================================================================
+  
+  // Lighten/Darken with opacity
+  @mixin color-variant($color, $lighten: 0%) {
+    @if $lighten > 0 {
+      background-color: lighten($color, $lighten);
+    } @else {
+      background-color: $color;
+    }
+  }
+  
+  // Text with background
+  @mixin text-highlight($bg-color, $text-color: $color-text-primary) {
+    background-color: $bg-color;
+    color: $text-color;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+  }

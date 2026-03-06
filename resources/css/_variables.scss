@@ -1,0 +1,171 @@
+// ===================================================================
+// VARIABLES & CONFIGURATION
+// ===================================================================
+
+// COLOR PALETTE
+// ===================================================================
+
+// Primary Colors
+$primary-dark: #0f172a;
+$primary-blue: #3b82f6;
+$primary-emerald: #10b981;
+$primary-amber: #f59e0b;
+$primary-red: #ef4444;
+$primary-cyan: #0ea5e9;
+
+// Neutrals - Gray Scale
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+
+// Status Colors
+$color-success: $primary-emerald;
+$color-warning: $primary-amber;
+$color-danger: $primary-red;
+$color-info: $primary-cyan;
+
+// Semantic Colors
+$color-text-primary: $gray-900;
+$color-text-secondary: $gray-500;
+$color-bg-primary: #ffffff;
+$color-bg-secondary: $gray-50;
+$color-border: $gray-200;
+
+// TYPOGRAPHY
+// ===================================================================
+
+// Font Families
+$font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-mono: "Monaco", "Courier New", monospace;
+$font-family-display: $font-family-base;
+
+// Font Sizes
+$font-size-xs: 0.75rem;    // 12px
+$font-size-sm: 0.875rem;   // 14px
+$font-size-base: 1rem;     // 16px
+$font-size-lg: 1.125rem;   // 18px
+$font-size-xl: 1.25rem;    // 20px
+$font-size-2xl: 1.5rem;    // 24px
+$font-size-3xl: 1.875rem;  // 30px
+
+// Font Weights
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extrabold: 800;
+
+// Line Heights
+$line-height-tight: 1.2;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+$line-height-loose: 2;
+
+// SPACING
+// ===================================================================
+
+// Space Scale (8px base)
+$spacing-unit: 8px;
+
+$spacing-xs: $spacing-unit * 0.5;  // 4px
+$spacing-sm: $spacing-unit;        // 8px
+$spacing-md: $spacing-unit * 2;    // 16px
+$spacing-lg: $spacing-unit * 3;    // 24px
+$spacing-xl: $spacing-unit * 4;    // 32px
+$spacing-2xl: $spacing-unit * 5;   // 40px
+$spacing-3xl: $spacing-unit * 6;   // 48px
+
+// Common spacings
+$margin-default: $spacing-md;
+$padding-default: $spacing-md;
+
+// SHADOWS
+// ===================================================================
+
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+// BORDER RADIUS
+// ===================================================================
+
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+$border-radius-2xl: 20px;
+$border-radius-full: 9999px;
+
+// TRANSITIONS & ANIMATIONS
+// ===================================================================
+
+$transition-fast: 150ms ease-in-out;
+$transition-base: 200ms ease-in-out;
+$transition-slow: 300ms ease-in-out;
+$transition-slower: 500ms ease-in-out;
+
+// BREAKPOINTS
+// ===================================================================
+
+// Mobile First Approach
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+$breakpoint-2xl: 1400px;
+
+// Breakpoint Map for mixins
+$breakpoints: (
+  'sm': $breakpoint-sm,
+  'md': $breakpoint-md,
+  'lg': $breakpoint-lg,
+  'xl': $breakpoint-xl,
+  '2xl': $breakpoint-2xl,
+);
+
+// Z-INDEX SCALE
+// ===================================================================
+
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// COMPONENT SIZES
+// ===================================================================
+
+$navbar-height: 56px;
+$sidebar-width: 250px;
+$card-border-width: 1px;
+$form-control-height: 40px;
+$btn-height: 40px;
+$btn-height-sm: 32px;
+$btn-height-lg: 48px;
+
+// FORM STYLES
+// ===================================================================
+
+$form-control-border-color: $gray-300;
+$form-control-focus-color: $primary-blue;
+$form-control-disabled-bg: $gray-100;
+$form-control-placeholder-color: $gray-400;
+
+// Container Widths
+// ===================================================================
+
+$container-max-width: 1140px;
+$container-max-width-lg: 1320px;
+$container-max-width-xl: 1320px;

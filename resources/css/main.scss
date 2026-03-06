@@ -1,0 +1,510 @@
+// ===================================================================
+// MAIN SCSS FILE - IMPORT ALL PARTIALS
+// ===================================================================
+
+// 1. CONFIGURATION & VARIABLES
+// Import first - variables used throughout
+@import 'variables';
+@import 'mixins';
+@import 'animations';
+
+// 2. GLOBAL STYLES
+// ===================================================================
+
+// Reset & Global
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: $color-text-primary;
+  background-color: $color-bg-primary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 3. TYPOGRAPHY
+// ===================================================================
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+h1 { font-size: $font-size-3xl; }
+h2 { font-size: $font-size-2xl; }
+h3 { font-size: $font-size-xl; }
+h4 { font-size: $font-size-lg; }
+h5 { font-size: $font-size-base; }
+h6 { font-size: $font-size-sm; }
+
+p {
+  margin-bottom: $spacing-md;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+a {
+  color: $primary-blue;
+  text-decoration: none;
+  @include transition(color);
+  
+  &:hover {
+    color: darken($primary-blue, 10%);
+    text-decoration: underline;
+  }
+}
+
+small, .text-muted {
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+
+// Utility Classes
+.fw-bold { font-weight: $font-weight-bold; }
+.fw-600 { font-weight: $font-weight-semibold; }
+.fw-500 { font-weight: $font-weight-medium; }
+
+// 4. LAYOUT
+// ===================================================================
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-container {
+  display: flex;
+  flex: 1;
+}
+
+.app-main {
+  flex: 1;
+  margin-left: $sidebar-width;
+  margin-top: $navbar-height;
+  padding: $spacing-lg;
+  background-color: $color-bg-secondary;
+  min-height: calc(100vh - #{$navbar-height});
+  
+  @include respond-to-max('md') {
+    margin-left: 0;
+    padding: $spacing-md;
+  }
+}
+
+// 5. BUTTONS
+// ===================================================================
+
+.btn {
+  @include btn-base;
+  
+  &.btn-primary {
+    background-color: $primary-blue;
+    color: white;
+    
+    &:hover {
+      background-color: darken($primary-blue, 5%);
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+    
+    &:active {
+      background-color: darken($primary-blue, 10%);
+    }
+  }
+  
+  &.btn-secondary {
+    background-color: $gray-200;
+    color: $color-text-primary;
+    
+    &:hover {
+      background-color: $gray-300;
+    }
+  }
+  
+  &.btn-danger {
+    background-color: $primary-red;
+    color: white;
+    
+    &:hover {
+      background-color: darken($primary-red, 5%);
+    }
+  }
+  
+  &.btn-success {
+    background-color: $primary-emerald;
+    color: white;
+    
+    &:hover {
+      background-color: darken($primary-emerald, 5%);
+    }
+  }
+  
+  &.btn-outline-primary {
+    border: 2px solid $primary-blue;
+    color: $primary-blue;
+    background-color: transparent;
+    
+    &:hover {
+      background-color: $primary-blue;
+      color: white;
+    }
+  }
+  
+  &.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: $font-size-xs;
+  }
+  
+  &.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: $font-size-lg;
+  }
+}
+
+// 6. FORMS
+// ===================================================================
+
+.form-label {
+  font-weight: $font-weight-medium;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-xs;
+  color: $gray-700;
+}
+
+.form-control,
+.form-select {
+  @include form-control-base;
+  
+  &.is-invalid {
+    border-color: $primary-red;
+    background-image: none;
+    
+    &:focus {
+      border-color: $primary-red;
+      box-shadow: 0 0 0 3px rgba($primary-red, 0.1);
+    }
+  }
+}
+
+.form-feedback {
+  font-size: $font-size-xs;
+  color: $primary-red;
+  margin-top: $spacing-xs;
+  display: none;
+  
+  &.is-show {
+    display: block;
+  }
+}
+
+.form-group {
+  @include form-group;
+}
+
+.form-actions {
+  @include flex-between($spacing-md);
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $color-border;
+}
+
+// 7. CARDS
+// ===================================================================
+
+.card {
+  @include card-base;
+  
+  .card-header {
+    padding: $spacing-md;
+    background-color: $color-bg-secondary;
+    border-bottom: 1px solid $color-border;
+    @include flex-between;
+  }
+  
+  .card-body {
+    padding: $spacing-md;
+  }
+  
+  .card-footer {
+    padding: $spacing-md;
+    background-color: $color-bg-secondary;
+    border-top: 1px solid $color-border;
+  }
+  
+  .card-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    margin: 0;
+  }
+}
+
+// 8. TABLES
+// ===================================================================
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  thead {
+    th {
+      background-color: $color-bg-secondary;
+      color: $gray-700;
+      font-weight: $font-weight-semibold;
+      font-size: $font-size-sm;
+      padding: $spacing-md;
+      text-align: left;
+      border-bottom: 2px solid $color-border;
+    }
+  }
+  
+  tbody {
+    tr {
+      &:hover {
+        background-color: $color-bg-secondary;
+      }
+      
+      td {
+        padding: $spacing-md;
+        border-bottom: 1px solid $color-border;
+      }
+    }
+  }
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+// 9. BADGES
+// ===================================================================
+
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  border-radius: $border-radius-md;
+  letter-spacing: 0.3px;
+  
+  &.bg-success { background-color: $color-success; }
+  &.bg-danger { background-color: $color-danger; }
+  &.bg-warning { background-color: $color-warning; }
+  &.bg-info { background-color: $color-info; }
+  &.bg-primary { background-color: $primary-blue; }
+  &.bg-secondary { background-color: $gray-300; }
+}
+
+// 10. ALERTS
+// ===================================================================
+
+.alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  border-left: 4px solid transparent;
+  @include flex-between;
+  margin-bottom: $spacing-md;
+  
+  &.alert-success {
+    background-color: rgba($color-success, 0.1);
+    border-left-color: $color-success;
+    color: darken($color-success, 20%);
+  }
+  
+  &.alert-danger {
+    background-color: rgba($primary-red, 0.1);
+    border-left-color: $primary-red;
+    color: darken($primary-red, 20%);
+  }
+  
+  &.alert-warning {
+    background-color: rgba($color-warning, 0.1);
+    border-left-color: $color-warning;
+    color: darken($color-warning, 20%);
+  }
+  
+  &.alert-info {
+    background-color: rgba($color-info, 0.1);
+    border-left-color: $color-info;
+    color: darken($color-info, 20%);
+  }
+}
+
+// 11. BREADCRUMBS
+// ===================================================================
+
+.breadcrumbs {
+  margin-bottom: $spacing-lg;
+}
+
+.breadcrumb {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  
+  .breadcrumb-item {
+    font-size: $font-size-sm;
+    color: $gray-600;
+    
+    &.active {
+      color: $color-text-primary;
+      font-weight: $font-weight-medium;
+    }
+    
+    a {
+      color: $primary-blue;
+    }
+  }
+}
+
+// 12. PAGE HEADER
+// ===================================================================
+
+.page-header {
+  background-color: $color-bg-primary;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  border: 1px solid $color-border;
+  
+  h1 {
+    margin-bottom: $spacing-xs;
+  }
+  
+  p {
+    margin: 0;
+    color: $color-text-secondary;
+  }
+}
+
+// 13. UTILITY CLASSES
+// ===================================================================
+
+// Text
+.text-center { text-align: center; }
+.text-start { text-align: start; }
+.text-end { text-align: end; }
+.text-muted { color: $color-text-secondary; }
+.text-dark { color: $color-text-primary; }
+.text-primary { color: $primary-blue; }
+
+// Background
+.bg-light { background-color: $color-bg-secondary; }
+.bg-dark { background-color: $gray-900; }
+
+// Border
+.border { border: 1px solid $color-border; }
+.border-top { border-top: 1px solid $color-border; }
+.border-bottom { border-bottom: 1px solid $color-border; }
+
+// Rounded
+.rounded { border-radius: $border-radius-md; }
+.rounded-lg { border-radius: $border-radius-lg; }
+.rounded-circle { border-radius: 50%; }
+
+// Shadow
+.shadow-sm { box-shadow: $shadow-sm; }
+.shadow-md { box-shadow: $shadow-md; }
+.shadow-lg { box-shadow: $shadow-lg; }
+
+// Spacing
+.gap-2 { gap: $spacing-sm; }
+.gap-3 { gap: $spacing-md; }
+.gap-4 { gap: $spacing-lg; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-2 { margin-bottom: $spacing-sm; }
+.mb-3 { margin-bottom: $spacing-md; }
+.mb-4 { margin-bottom: $spacing-lg; }
+
+.mt-3 { margin-top: $spacing-md; }
+.mt-4 { margin-top: $spacing-lg; }
+
+.p-3 { padding: $spacing-md; }
+.p-4 { padding: $spacing-lg; }
+
+.px-3 { padding-left: $spacing-md; padding-right: $spacing-md; }
+.px-4 { padding-left: $spacing-lg; padding-right: $spacing-lg; }
+
+.py-3 { padding-top: $spacing-md; padding-bottom: $spacing-md; }
+.py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+
+// Display
+.h-100 { height: 100%; }
+.w-100 { width: 100%; }
+.flex-fill { flex: 1 1 auto; }
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+
+// 14. RESPONSIVE
+// ===================================================================
+
+@include respond-to-max('md') {
+  h1 { font-size: $font-size-2xl; }
+  h2 { font-size: $font-size-xl; }
+  
+  .d-none-mobile { display: none; }
+}
+
+// 15. SCROLLBAR STYLING
+// ===================================================================
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: $color-bg-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $gray-300;
+  border-radius: $border-radius-sm;
+  
+  &:hover {
+    background: $gray-400;
+  }
+}
+
+// 16. SELECTION
+// ===================================================================
+
+::selection {
+  background-color: $primary-blue;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: $primary-blue;
+  color: white;
+}
+
+// 17. FOCUS STYLES (Accessibility)
+// ===================================================================
+
+:focus-visible {
+  outline: 2px solid $primary-blue;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @include focus-ring($primary-blue);
+}
