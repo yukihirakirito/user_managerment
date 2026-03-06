@@ -84,7 +84,7 @@
 {{-- Recent Users Table --}}
 <div class="card shadow-sm">
     <div class="card-header bg-light border-bottom">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center w-100">
             <h5 class="mb-0 fw-bold">
                 <i class="bi bi-clock-history me-2"></i>Recent Users
             </h5>

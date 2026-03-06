@@ -8,7 +8,7 @@
 @endsection
 
 @section('page-header')
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center w-100">
         <div>
             <h1 class="h2 fw-bold mb-0">User Management</h1>
             <p class="text-muted mb-0">Manage students, lecturers, and staff members</p>
@@ -93,7 +93,7 @@
         <div class="card shadow-sm">
             {{-- Table Header --}}
             <div class="card-header bg-light border-bottom">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center w-100">
                     <h5 class="mb-0 fw-bold">
                         <i class="bi bi-table me-2"></i>Users List
                     </h5>
@@ -201,7 +201,7 @@
             @if($users ?? null)
             <div class="card-footer bg-light">
                 <nav aria-label="Page navigation">
-                    {{ $users->links('pagination::bootstrap-5') }}
+                    {{ $users->links() }}
                 </nav>
             </div>
             @endif

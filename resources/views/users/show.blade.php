@@ -14,11 +14,11 @@
         {{-- User Details Card --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light border-bottom">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center w-100">
                     <h5 class="mb-0 fw-bold">
                         <i class="bi bi-person-fill me-2"></i>User Information
                     </h5>
-                    <div class="btn-group btn-group-sm">
+                    <div class="">
                         <a href="{{ route('users.edit', $user ?? 0) }}" class="btn btn-warning">
                             <i class="bi bi-pencil"></i> Edit
                         </a>
