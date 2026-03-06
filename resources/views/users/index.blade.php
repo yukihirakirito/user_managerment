@@ -21,7 +21,6 @@
 
 @section('content')
 <div class="row g-4">
-    {{-- Filter & Search Card --}}
     <div class="col-lg-3">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-light border-bottom">
@@ -31,7 +30,6 @@
             </div>
             <div class="card-body">
                 <form action="{{ route('users.index') }}" method="GET">
-                    {{-- Search --}}
                     <div class="mb-3">
                         <label for="search" class="form-label fw-500">Search</label>
                         <input type="text" id="search" name="search" 
@@ -40,7 +38,6 @@
                                value="{{ request('search') }}">
                     </div>
 
-                    {{-- User Type --}}
                     <div class="mb-3">
                         <label for="user_type" class="form-label fw-500">User Type</label>
                         <select id="user_type" name="user_type" class="form-select form-select-sm">
@@ -57,7 +54,6 @@
                         </select>
                     </div>
 
-                    {{-- Status --}}
                     <div class="mb-3">
                         <label for="status" class="form-label fw-500">Status</label>
                         <select id="status" name="status" class="form-select form-select-sm">
@@ -74,7 +70,6 @@
                         </select>
                     </div>
 
-                    {{-- Buttons --}}
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-sm">
                             <i class="bi bi-search me-2"></i>Filter
@@ -88,10 +83,8 @@
         </div>
     </div>
 
-    {{-- Users Table Card --}}
     <div class="col-lg-9">
         <div class="card shadow-sm">
-            {{-- Table Header --}}
             <div class="card-header bg-light border-bottom">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <h5 class="mb-0 fw-bold">
@@ -101,7 +94,6 @@
                 </div>
             </div>
 
-            {{-- Table --}}
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
@@ -213,14 +205,12 @@
 
 @push('scripts')
 <script>
-// Select all checkbox
 document.getElementById('selectAll')?.addEventListener('change', function() {
     document.querySelectorAll('.user-checkbox').forEach(checkbox => {
         checkbox.checked = this.checked;
     });
 });
 
-// Initialize tooltips
 const tooltips = new bootstrap.Tooltip(document.body, {
     selector: '[data-bs-toggle="tooltip"]'
 });

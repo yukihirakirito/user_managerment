@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - User Management System</title>
 
-    {{-- Bootstrap 5 --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    {{-- Bootstrap Icons --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
-    {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -260,7 +257,6 @@
 </head>
 <body>
     <div class="register-container">
-        {{-- Header --}}
         <div class="register-header">
             <div class="register-logo">
                 <i class="bi bi-person-plus"></i>
@@ -269,9 +265,7 @@
             <p>User Management System</p>
         </div>
 
-        {{-- Body --}}
         <div class="register-body">
-            {{-- Error Messages --}}
             @if ($errors->any())
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-circle"></i>
@@ -283,7 +277,6 @@
                 </div>
             @endif
 
-            {{-- Session Messages --}}
             @if (session('error'))
                 <div class="alert alert-danger">
                     <i class="bi bi-x-circle"></i>
@@ -298,11 +291,9 @@
                 </div>
             @endif
 
-            {{-- Register Form --}}
             <form action="{{ route('register') }}" method="POST">
                 @csrf
 
-                {{-- Full Name Field --}}
                 <div class="form-group @error('name') error @enderror">
                     <label for="name" class="form-label">
                         <i class="bi bi-person"></i> Full Name
@@ -322,7 +313,6 @@
                     @enderror
                 </div>
 
-                {{-- Email Field --}}
                 <div class="form-group @error('email') error @enderror">
                     <label for="email" class="form-label">
                         <i class="bi bi-envelope"></i> Email Address
@@ -341,7 +331,6 @@
                     @enderror
                 </div>
 
-                {{-- Password Field --}}
                 <div class="form-group @error('password') error @enderror">
                     <label for="password" class="form-label">
                         <i class="bi bi-lock"></i> Password
@@ -362,7 +351,6 @@
                     @enderror
                 </div>
 
-                {{-- Password Confirmation Field --}}
                 <div class="form-group @error('password_confirmation') error @enderror">
                     <label for="password_confirmation" class="form-label">
                         <i class="bi bi-lock-check"></i> Confirm Password
@@ -380,14 +368,12 @@
                     @enderror
                 </div>
 
-                {{-- Register Button --}}
                 <button type="submit" class="btn-register">
                     <i class="bi bi-check-circle"></i>
                     Create Account
                 </button>
             </form>
 
-            {{-- Login Link --}}
             <div class="register-footer">
                 <p>
                     Already have an account? 
@@ -397,7 +383,6 @@
         </div>
     </div>
 
-    {{-- Bootstrap JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

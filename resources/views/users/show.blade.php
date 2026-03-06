@@ -11,7 +11,6 @@
 @section('content')
 <div class="row g-4">
     <div class="col-lg-8">
-        {{-- User Details Card --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light border-bottom">
                 <div class="d-flex justify-content-between align-items-center w-100">
@@ -80,7 +79,6 @@
             </div>
         </div>
 
-        {{-- Type-Specific Details --}}
         @if($user->user_type === 'student' && $user->student)
             <div class="card shadow-sm">
                 <div class="card-header bg-light border-bottom">
@@ -192,9 +190,7 @@
         @endif
     </div>
 
-    {{-- Sidebar --}}
     <div class="col-lg-4">
-        {{-- Quick Actions Card --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light border-bottom">
                 <h5 class="mb-0 fw-bold">
