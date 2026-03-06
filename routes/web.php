@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 
@@ -29,11 +29,11 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     // Login routes
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');;
 
     // Register routes (optional)
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/register', [RegisterController::class, 'register'])->middleware('throttle:5,1');;
 });
 
 // Logout route
@@ -93,6 +93,34 @@ Route::middleware('auth')->group(function () {
     Route::prefix('staff')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('staff.index');
         Route::get('/create', [UserController::class, 'create'])->name('staff.create');
+    });
+
+    // Reports routes
+    Route::prefix('reports')->group(function () {
+        Route::get('/analytics', [App\Http\Controllers\ReportController::class, 'analytics'])
+            ->name('reports.analytics');
+        
+        Route::get('/activity', [App\Http\Controllers\ReportController::class, 'activity'])
+            ->name('reports.activity');
+    });
+
+    Route::prefix('api/reports')->group(function () {
+        Route::get('/analytics', [App\Http\Controllers\ReportController::class, 'getAnalyticsData'])
+            ->name('api.reports.analytics');
+        
+        Route::get('/activity', [App\Http\Controllers\ReportController::class, 'getActivityData'])
+            ->name('api.reports.activity');
+        
+        Route::get('/daily-activity', [App\Http\Controllers\ReportController::class, 'getDailyActivityChart'])
+            ->name('api.reports.daily-activity');
+    });
+
+
+    // Settings
+    Route::prefix('settings')->group(function () {
+        Route::get('/', function() {
+            return view('settings.index');
+        })->name('settings.index');
     });
 });
 

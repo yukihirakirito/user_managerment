@@ -1,18 +1,29 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Student;
-use App\Models\Lecturer;
-use App\Models\Staff;
+use App\Repositories\UserRepository;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
+    /**
+     * @var UserRepository
+     */
+    protected $userRepository;
+
+    /**
+     * Constructor - Dependency Injection
+     *
+     * @param UserRepository $userRepository
+     */
+    public function __construct(UserRepository $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
     /**
      * Display a listing of users with filtering and search
      *
@@ -21,30 +32,18 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query();
+        // Get filters from request
+        $filters = [
+            'search' => $request->input('search'),
+            'user_type' => $request->input('user_type'),
+            'status' => $request->input('status'),
+        ];
 
-        // Search filter - search by name, email, phone
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
+        // Use repository to get filtered users
+        $users = $this->userRepository->filterUsers($filters, 15);
 
-        // User type filter
-        if ($request->filled('user_type')) {
-            $query->where('user_type', $request->input('user_type'));
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        // Pagination
-        $users = $query->latest()->paginate(15);
+        // Log activity
+        $this->logActivity('viewed_users');
 
         return view('users.index', [
             'users' => $users,
@@ -69,25 +68,22 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // Get validation rules based on user type
         $rules = $this->getValidationRules($request->input('user_type'));
         
-        // Validate input
         $validated = $request->validate($rules, $this->getValidationMessages());
 
         try {
-            // Create user
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'phone' => $validated['phone'] ?? null,
-                'user_type' => $validated['user_type'],
-                'status' => 'active',
-            ]);
+            if ($validated['user_type'] === 'student') {
+                $user = $this->userRepository->createStudent($validated);
+            } elseif ($validated['user_type'] === 'lecturer') {
+                $user = $this->userRepository->createLecturer($validated);
+            } elseif ($validated['user_type'] === 'staff') {
+                $user = $this->userRepository->createStaff($validated);
+            } else {
+                $user = $this->userRepository->create($validated);
+            }
 
-            // Create type-specific record
-            $this->createTypeSpecificRecord($user, $validated);
+            $this->logActivity('created_user', ['user_id' => $user->id]);
 
             return redirect()
                 ->route('users.show', $user)
@@ -102,11 +98,19 @@ class UserController extends Controller
     /**
      * Display the specified user
      *
-     * @param \App\Models\User $user
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function show(User $user)
+    public function show($id)
     {
+        $user = $this->userRepository->getUserWithRelations($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
+        $this->logActivity('viewed_user', ['user_id' => $user->id]);
+
         return view('users.show', [
             'user' => $user,
         ]);
@@ -115,11 +119,17 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified user
      *
-     * @param \App\Models\User $user
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function edit(User $user)
+    public function edit($id)
     {
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
         return view('users.edit', [
             'user' => $user,
         ]);
@@ -129,17 +139,22 @@ class UserController extends Controller
      * Update the specified user in storage
      *
      * @param \Illuminate\Http\Request $request
-     * @param \App\Models\User $user
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, $id)
     {
-        // Validate input
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'email', \Illuminate\Validation\Rule::unique('users')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:20'],
-            'status' => ['required', Rule::in('active', 'inactive', 'suspended')],
+            'status' => ['required', \Illuminate\Validation\Rule::in('active', 'inactive', 'suspended')],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             
             // Student fields
@@ -158,25 +173,13 @@ class UserController extends Controller
             
             // Staff fields
             'position' => ['nullable', 'string', 'max:255'],
-            'employment_type' => ['nullable', Rule::in('full-time', 'part-time', 'contract')],
+            'employment_type' => ['nullable', \Illuminate\Validation\Rule::in('full-time', 'part-time', 'contract')],
         ], $this->getValidationMessages());
 
         try {
-            // Update user
-            $user->update([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? $user->phone,
-                'status' => $validated['status'],
-            ]);
+            $this->userRepository->update($id, $validated);
 
-            // Update password if provided
-            if (!empty($validated['password'])) {
-                $user->update(['password' => Hash::make($validated['password'])]);
-            }
-
-            // Update type-specific record
-            $this->updateTypeSpecificRecord($user, $validated);
+            $this->logActivity('updated_user', ['user_id' => $id, 'changes' => $validated]);
 
             return redirect()
                 ->route('users.show', $user)
@@ -191,14 +194,23 @@ class UserController extends Controller
     /**
      * Remove the specified user from storage
      *
-     * @param \App\Models\User $user
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(User $user)
+    public function destroy($id)
     {
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
         try {
             $name = $user->name;
-            $user->delete();
+
+            $this->userRepository->delete($id);
+
+            $this->logActivity('deleted_user', ['user_name' => $name]);
 
             return redirect()
                 ->route('users.index')
@@ -213,17 +225,27 @@ class UserController extends Controller
      * Change user status (AJAX)
      *
      * @param \Illuminate\Http\Request $request
-     * @param \App\Models\User $user
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function changeStatus(Request $request, User $user)
+    public function changeStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in('active', 'inactive', 'suspended')],
+            'status' => ['required', \Illuminate\Validation\Rule::in('active', 'inactive', 'suspended')],
         ]);
 
         try {
-            $user->update(['status' => $validated['status']]);
+            $user = $this->userRepository->updateStatus($id, $validated['status']);
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found',
+                ], 404);
+            }
+
+            // Log activity
+            $this->logActivity('changed_user_status', ['user_id' => $id, 'status' => $validated['status']]);
 
             return response()->json([
                 'success' => true,
@@ -241,22 +263,19 @@ class UserController extends Controller
     /**
      * Get users by type (API)
      *
-     * @param string $type
-     * @param \Illuminate\Http\Request $request
+     * @param Request $request
+     * @param string|null $type
      * @return \Illuminate\Http\JsonResponse
      */
     public function getByType(Request $request, $type = null)
     {
-        // Support both route parameter and query parameter
         $userType = $type ?? $request->input('type');
 
         if (!$userType) {
             return response()->json(['error' => 'User type is required'], 400);
         }
 
-        $users = User::where('user_type', $userType)
-            ->paginate(15)
-            ->toArray();
+        $users = $this->userRepository->getUsersByType($userType, 15);
 
         return response()->json($users);
     }
@@ -275,13 +294,7 @@ class UserController extends Controller
             return response()->json(['error' => 'Search term must be at least 2 characters'], 400);
         }
 
-        $users = User::where(function ($query) use ($search) {
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-        })
-        ->limit(10)
-        ->get();
+        $users = $this->userRepository->searchUsers($search);
 
         return response()->json($users);
     }
@@ -294,18 +307,12 @@ class UserController extends Controller
      */
     public function export(Request $request)
     {
-        $query = User::query();
+        $filters = [
+            'user_type' => $request->input('user_type'),
+            'status' => $request->input('status'),
+        ];
 
-        // Apply filters if provided
-        if ($request->filled('user_type')) {
-            $query->where('user_type', $request->input('user_type'));
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $users = $query->get();
+        $users = $this->userRepository->getForExport($filters);
 
         return response()->json([
             'export_date' => now()->format('Y-m-d H:i:s'),
@@ -331,15 +338,9 @@ class UserController extends Controller
      */
     public function getStatistics()
     {
-        return response()->json([
-            'total_users' => User::count(),
-            'total_students' => User::where('user_type', 'student')->count(),
-            'total_lecturers' => User::where('user_type', 'lecturer')->count(),
-            'total_staff' => User::where('user_type', 'staff')->count(),
-            'active_users' => User::where('status', 'active')->count(),
-            'inactive_users' => User::where('status', 'inactive')->count(),
-            'suspended_users' => User::where('status', 'suspended')->count(),
-        ]);
+        $stats = $this->userRepository->getStatistics();
+
+        return response()->json($stats);
     }
 
     /**
@@ -355,10 +356,9 @@ class UserController extends Controller
             'email' => ['required', 'email', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'user_type' => ['required', Rule::in('student', 'lecturer', 'staff')],
+            'user_type' => ['required', \Illuminate\Validation\Rule::in('student', 'lecturer', 'staff')],
         ];
 
-        // Add type-specific rules
         if ($userType === 'student') {
             $rules['student_code'] = ['required', 'string', 'unique:students'];
             $rules['major'] = ['required', 'string', 'max:255'];
@@ -375,7 +375,7 @@ class UserController extends Controller
             $rules['employee_code_staff'] = ['required', 'string', 'unique:staffs'];
             $rules['department_staff'] = ['required', 'string', 'max:255'];
             $rules['position'] = ['required', 'string', 'max:255'];
-            $rules['employment_type'] = ['nullable', Rule::in('full-time', 'part-time', 'contract')];
+            $rules['employment_type'] = ['nullable', \Illuminate\Validation\Rule::in('full-time', 'part-time', 'contract')];
             $rules['hire_date_staff'] = ['required', 'date'];
         }
 
@@ -409,77 +409,25 @@ class UserController extends Controller
     }
 
     /**
-     * Create type-specific record when user is created
+     * Log activity
      *
-     * @param \App\Models\User $user
+     * @param string $action
      * @param array $data
      * @return void
      */
-    private function createTypeSpecificRecord(User $user, array $data)
+    private function logActivity($action, $data = [])
     {
-        if ($data['user_type'] === 'student') {
-            Student::create([
-                'user_id' => $user->id,
-                'student_code' => $data['student_code'],
-                'major' => $data['major'],
-                'enrollment_date' => $data['enrollment_date'],
-                'graduation_date' => $data['graduation_date'] ?? null,
-                'gpa' => $data['gpa'] ?? null,
+        try {
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'model' => 'User',
+                'changes' => !empty($data) ? $data : null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
             ]);
-        } elseif ($data['user_type'] === 'lecturer') {
-            Lecturer::create([
-                'user_id' => $user->id,
-                'employee_code' => $data['employee_code'],
-                'department' => $data['department'],
-                'specialization' => $data['specialization'] ?? null,
-                'academic_degree' => $data['academic_degree'] ?? null,
-                'hire_date' => $data['hire_date_lecturer'] ?? null,
-            ]);
-        } elseif ($data['user_type'] === 'staff') {
-            Staff::create([
-                'user_id' => $user->id,
-                'employee_code' => $data['employee_code_staff'],
-                'department' => $data['department_staff'],
-                'position' => $data['position'],
-                'employment_type' => $data['employment_type'] ?? 'full-time',
-                'hire_date' => $data['hire_date_staff'] ?? null,
-            ]);
-        }
-    }
-
-    /**
-     * Update type-specific record when user is updated
-     *
-     * @param \App\Models\User $user
-     * @param array $data
-     * @return void
-     */
-    private function updateTypeSpecificRecord(User $user, array $data)
-    {
-        if ($user->user_type === 'student' && $user->student) {
-            $user->student->update([
-                'student_code' => $data['student_code'] ?? $user->student->student_code,
-                'major' => $data['major'] ?? $user->student->major,
-                'enrollment_date' => $data['enrollment_date'] ?? $user->student->enrollment_date,
-                'graduation_date' => $data['graduation_date'] ?? $user->student->graduation_date,
-                'gpa' => $data['gpa'] ?? $user->student->gpa,
-            ]);
-        } elseif ($user->user_type === 'lecturer' && $user->lecturer) {
-            $user->lecturer->update([
-                'employee_code' => $data['employee_code'] ?? $user->lecturer->employee_code,
-                'department' => $data['department'] ?? $user->lecturer->department,
-                'specialization' => $data['specialization'] ?? $user->lecturer->specialization,
-                'academic_degree' => $data['academic_degree'] ?? $user->lecturer->academic_degree,
-                'hire_date' => $data['hire_date'] ?? $user->lecturer->hire_date,
-            ]);
-        } elseif ($user->user_type === 'staff' && $user->staff) {
-            $user->staff->update([
-                'employee_code' => $data['employee_code'] ?? $user->staff->employee_code,
-                'department' => $data['department'] ?? $user->staff->department,
-                'position' => $data['position'] ?? $user->staff->position,
-                'employment_type' => $data['employment_type'] ?? $user->staff->employment_type,
-                'hire_date' => $data['hire_date'] ?? $user->staff->hire_date,
-            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log activity: ' . $e->getMessage());
         }
     }
 }

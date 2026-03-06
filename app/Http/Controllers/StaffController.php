@@ -2,52 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Api\UserController;
-use App\Models\User;
-use App\Models\Staff;
+use App\Repositories\UserRepository;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class StaffController extends Controller
 {
     /**
-     * Display list of staff members
+     * @var UserRepository
+     */
+    protected $userRepository;
+
+    /**
+     * Constructor - Dependency Injection
+     *
+     * @param UserRepository $userRepository
+     */
+    public function __construct(UserRepository $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
+    /**
+     * Display list of staff
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
-        $query = User::where('user_type', 'staff');
+        // Get filters from request
+        $filters = [
+            'search' => $request->input('search'),
+            'user_type' => 'staff',
+            'status' => $request->input('status'),
+        ];
 
-        // Search filter
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+        // Use UserRepository to get filtered staff
+        $staff = $this->userRepository->filterUsers($filters, 15);
 
-        // Department filter
-        if ($request->filled('department')) {
-            $query->whereHas('staff', function ($q) use ($request) {
-                $q->where('department', $request->input('department'));
-            });
-        }
-
-        // Employment type filter
-        if ($request->filled('employment_type')) {
-            $query->whereHas('staff', function ($q) use ($request) {
-                $q->where('employment_type', $request->input('employment_type'));
-            });
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $staff = $query->paginate(15);
+        // Log activity
+        $this->logActivity('viewed_staff');
 
         return view('staff.index', [
             'staff' => $staff,
@@ -65,28 +60,53 @@ class StaffController extends Controller
     }
 
     /**
-     * Store new staff member
+     * Store new staff
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
-        $userController = new UserController();
-        return $userController->store($request);
+        // Get validation rules
+        $rules = $this->getValidationRules('staff');
+        
+        // Validate input
+        $validated = $request->validate($rules, $this->getValidationMessages());
+
+        try {
+            // Use UserRepository to create staff
+            $user = $this->userRepository->createStaff($validated);
+
+            // Log activity
+            $this->logActivity('created_staff', ['user_id' => $user->id]);
+
+            return redirect()
+                ->route('staff.show', $user)
+                ->with('success', 'Staff created successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error creating staff: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
      * Display staff details
      *
-     * @param \App\Models\User $staff
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function show(User $staff)
+    public function show($id)
     {
-        if ($staff->user_type !== 'staff') {
-            abort(404);
+        // Get staff with relations
+        $staff = $this->userRepository->getUserWithRelations($id);
+
+        if (!$staff || $staff->user_type !== 'staff') {
+            abort(404, 'Staff not found');
         }
+
+        // Log activity
+        $this->logActivity('viewed_staff_member', ['staff_id' => $staff->id]);
 
         return view('staff.show', [
             'staff' => $staff,
@@ -96,13 +116,15 @@ class StaffController extends Controller
     /**
      * Show edit staff form
      *
-     * @param \App\Models\User $staff
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function edit(User $staff)
+    public function edit($id)
     {
-        if ($staff->user_type !== 'staff') {
-            abort(404);
+        $staff = $this->userRepository->find($id);
+
+        if (!$staff || $staff->user_type !== 'staff') {
+            abort(404, 'Staff not found');
         }
 
         return view('staff.edit', [
@@ -111,120 +133,218 @@ class StaffController extends Controller
     }
 
     /**
-     * Update staff member
+     * Update staff
      *
      * @param \Illuminate\Http\Request $request
-     * @param \App\Models\User $staff
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, User $staff)
+    public function update(Request $request, $id)
     {
-        if ($staff->user_type !== 'staff') {
-            abort(404);
+        $staff = $this->userRepository->find($id);
+
+        if (!$staff || $staff->user_type !== 'staff') {
+            abort(404, 'Staff not found');
         }
 
-        $userController = new UserController();
-        return $userController->update($request, $staff);
+        // Validate input
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', \Illuminate\Validation\Rule::unique('users')->ignore($staff->id)],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'status' => ['required', \Illuminate\Validation\Rule::in('active', 'inactive', 'suspended')],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'employee_code_staff' => ['nullable', 'string', 'max:255'],
+            'department_staff' => ['nullable', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'employment_type' => ['nullable', \Illuminate\Validation\Rule::in('full-time', 'part-time', 'contract')],
+            'hire_date_staff' => ['nullable', 'date'],
+        ], $this->getValidationMessages());
+
+        try {
+            // Use UserRepository to update staff
+            $this->userRepository->update($id, $validated);
+
+            // Log activity
+            $this->logActivity('updated_staff', ['staff_id' => $id]);
+
+            return redirect()
+                ->route('staff.show', $staff)
+                ->with('success', 'Staff updated successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error updating staff: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
-     * Delete staff member
+     * Delete staff
      *
-     * @param \App\Models\User $staff
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(User $staff)
+    public function destroy($id)
     {
-        if ($staff->user_type !== 'staff') {
-            abort(404);
+        $staff = $this->userRepository->find($id);
+
+        if (!$staff || $staff->user_type !== 'staff') {
+            abort(404, 'Staff not found');
         }
 
-        $userController = new UserController();
-        return $userController->destroy($staff);
+        try {
+            $name = $staff->name;
+
+            // Use UserRepository to delete staff
+            $this->userRepository->delete($id);
+
+            // Log activity
+            $this->logActivity('deleted_staff', ['staff_name' => $name]);
+
+            return redirect()
+                ->route('staff.index')
+                ->with('success', "Staff '{$name}' deleted successfully!");
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error deleting staff: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Get staff statistics
+     * Get staff statistics (API)
      *
      * @return \Illuminate\Http\JsonResponse
      */
     public function getStatistics()
     {
+        $stats = $this->userRepository->getStaffStatistics();
+
         return response()->json([
-            'total_staff' => User::where('user_type', 'staff')->count(),
-            'active_staff' => User::where('user_type', 'staff')
-                ->where('status', 'active')
-                ->count(),
-            'departments' => Staff::distinct('department')->pluck('department'),
-            'positions' => Staff::distinct('position')->pluck('position'),
-            'employment_types' => Staff::distinct('employment_type')->pluck('employment_type'),
+            'success' => true,
+            'data' => $stats,
         ]);
     }
 
     /**
-     * Get staff by department
+     * Get staff by position (API)
      *
-     * @param string $department
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getByDepartment($department)
+    public function getByPosition(Request $request)
     {
-        $staff = User::where('user_type', 'staff')
-            ->whereHas('staff', function ($query) use ($department) {
-                $query->where('department', $department);
-            })
-            ->get();
+        $position = $request->input('position');
 
-        return response()->json($staff);
+        if (!$position) {
+            return response()->json(['error' => 'Position is required'], 400);
+        }
+
+        // Use UserRepository
+        $staff = $this->userRepository->getUsersByType('staff', 15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $staff,
+        ]);
     }
 
     /**
-     * Get staff by position
+     * Export staff data (API)
      *
-     * @param string $position
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getByPosition($position)
+    public function export(Request $request)
     {
-        $staff = User::where('user_type', 'staff')
-            ->whereHas('staff', function ($query) use ($position) {
-                $query->where('position', $position);
-            })
-            ->get();
+        $filters = [
+            'user_type' => 'staff',
+            'status' => $request->input('status'),
+        ];
 
-        return response()->json($staff);
-    }
+        // Use UserRepository to get data for export
+        $staff = $this->userRepository->getForExport($filters);
 
-    /**
-     * Get staff by employment type
-     *
-     * @param string $employmentType
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getByEmploymentType($employmentType)
-    {
-        $staff = User::where('user_type', 'staff')
-            ->whereHas('staff', function ($query) use ($employmentType) {
-                $query->where('employment_type', $employmentType);
-            })
-            ->get();
-
-        return response()->json($staff);
-    }
-
-    /**
-     * Export staff data
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function export()
-    {
-        $staff = User::where('user_type', 'staff')->with('staff')->get();
+        // Log activity
+        $this->logActivity('exported_staff', ['count' => $staff->count()]);
 
         return response()->json([
             'export_date' => now()->format('Y-m-d H:i:s'),
             'total_staff' => $staff->count(),
-            'staff' => $staff,
+            'staff' => $staff->map(function ($member) {
+                return [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'status' => ucfirst($member->status),
+                    'created_at' => $member->created_at->format('Y-m-d H:i:s'),
+                ];
+            }),
         ]);
+    }
+
+    /**
+     * Get validation rules for staff
+     *
+     * @param string $userType
+     * @return array
+     */
+    private function getValidationRules($userType)
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'user_type' => ['required', \Illuminate\Validation\Rule::in('staff')],
+            'employee_code_staff' => ['required', 'string', 'unique:staffs'],
+            'department_staff' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'string', 'max:255'],
+            'employment_type' => ['nullable', \Illuminate\Validation\Rule::in('full-time', 'part-time', 'contract')],
+            'hire_date_staff' => ['required', 'date'],
+        ];
+    }
+
+    /**
+     * Get validation messages
+     *
+     * @return array
+     */
+    private function getValidationMessages()
+    {
+        return [
+            'name.required' => 'The name field is required.',
+            'email.required' => 'The email field is required.',
+            'email.unique' => 'The email address already exists.',
+            'password.required' => 'The password field is required.',
+            'password.min' => 'The password must be at least 8 characters.',
+            'employee_code_staff.required' => 'The employee code is required.',
+            'employee_code_staff.unique' => 'The employee code already exists.',
+            'department_staff.required' => 'The department field is required.',
+            'position.required' => 'The position field is required.',
+            'hire_date_staff.required' => 'The hire date is required.',
+        ];
+    }
+
+    /**
+     * Log activity
+     *
+     * @param string $action
+     * @param array $data
+     * @return void
+     */
+    private function logActivity($action, $data = [])
+    {
+        try {
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'model' => 'Staff',
+                'changes' => !empty($data) ? $data : null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        } catch (\Exception $e) {
+            // Silently fail
+        }
     }
 }

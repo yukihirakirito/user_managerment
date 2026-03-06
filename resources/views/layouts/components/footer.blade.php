@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-md-6 text-center text-md-start">
                 <p class="mb-0 small">
-                    &copy; {{ date('Y') }} User Management System. All rights reserved.
+                    &copy; {{ date('Y') }} User Management System. Developed by dont11.
                 </p>
             </div>
             <div class="col-md-6 text-center text-md-end">

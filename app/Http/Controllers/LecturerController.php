@@ -2,13 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Api\UserController;
-use App\Models\User;
-use App\Models\Lecturer;
+use App\Repositories\UserRepository;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LecturerController extends Controller
 {
+    /**
+     * @var UserRepository
+     */
+    protected $userRepository;
+
+    /**
+     * Constructor - Dependency Injection
+     *
+     * @param UserRepository $userRepository
+     */
+    public function __construct(UserRepository $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
     /**
      * Display list of lecturers
      *
@@ -17,30 +32,15 @@ class LecturerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::where('user_type', 'lecturer');
+        $filters = [
+            'search' => $request->input('search'),
+            'user_type' => 'lecturer',
+            'status' => $request->input('status'),
+        ];
 
-        // Search filter
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+        $lecturers = $this->userRepository->filterUsers($filters, 15);
 
-        // Department filter
-        if ($request->filled('department')) {
-            $query->whereHas('lecturer', function ($q) use ($request) {
-                $q->where('department', $request->input('department'));
-            });
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $lecturers = $query->paginate(15);
+        $this->logActivity('viewed_lecturers');
 
         return view('lecturers.index', [
             'lecturers' => $lecturers,
@@ -65,21 +65,40 @@ class LecturerController extends Controller
      */
     public function store(Request $request)
     {
-        $userController = new UserController();
-        return $userController->store($request);
+        $rules = $this->getValidationRules('lecturer');
+        
+        $validated = $request->validate($rules, $this->getValidationMessages());
+
+        try {
+            $user = $this->userRepository->createLecturer($validated);
+
+            $this->logActivity('created_lecturer', ['user_id' => $user->id]);
+
+            return redirect()
+                ->route('lecturers.show', $user)
+                ->with('success', 'Lecturer created successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error creating lecturer: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
      * Display lecturer details
      *
-     * @param \App\Models\User $lecturer
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function show(User $lecturer)
+    public function show($id)
     {
-        if ($lecturer->user_type !== 'lecturer') {
-            abort(404);
+        $lecturer = $this->userRepository->getUserWithRelations($id);
+
+        if (!$lecturer || $lecturer->user_type !== 'lecturer') {
+            abort(404, 'Lecturer not found');
         }
+
+        $this->logActivity('viewed_lecturer', ['lecturer_id' => $lecturer->id]);
 
         return view('lecturers.show', [
             'lecturer' => $lecturer,
@@ -89,13 +108,15 @@ class LecturerController extends Controller
     /**
      * Show edit lecturer form
      *
-     * @param \App\Models\User $lecturer
+     * @param int $id
      * @return \Illuminate\View\View
      */
-    public function edit(User $lecturer)
+    public function edit($id)
     {
-        if ($lecturer->user_type !== 'lecturer') {
-            abort(404);
+        $lecturer = $this->userRepository->find($id);
+
+        if (!$lecturer || $lecturer->user_type !== 'lecturer') {
+            abort(404, 'Lecturer not found');
         }
 
         return view('lecturers.edit', [
@@ -107,99 +128,206 @@ class LecturerController extends Controller
      * Update lecturer
      *
      * @param \Illuminate\Http\Request $request
-     * @param \App\Models\User $lecturer
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, User $lecturer)
+    public function update(Request $request, $id)
     {
-        if ($lecturer->user_type !== 'lecturer') {
-            abort(404);
+        $lecturer = $this->userRepository->find($id);
+
+        if (!$lecturer || $lecturer->user_type !== 'lecturer') {
+            abort(404, 'Lecturer not found');
         }
 
-        $userController = new UserController();
-        return $userController->update($request, $lecturer);
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', \Illuminate\Validation\Rule::unique('users')->ignore($lecturer->id)],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'status' => ['required', \Illuminate\Validation\Rule::in('active', 'inactive', 'suspended')],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'employee_code' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'specialization' => ['nullable', 'string', 'max:255'],
+            'academic_degree' => ['nullable', 'string', 'max:255'],
+            'hire_date' => ['nullable', 'date'],
+        ], $this->getValidationMessages());
+
+        try {
+            $this->userRepository->update($id, $validated);
+
+            $this->logActivity('updated_lecturer', ['lecturer_id' => $id]);
+
+            return redirect()
+                ->route('lecturers.show', $lecturer)
+                ->with('success', 'Lecturer updated successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error updating lecturer: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
      * Delete lecturer
      *
-     * @param \App\Models\User $lecturer
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(User $lecturer)
+    public function destroy($id)
     {
-        if ($lecturer->user_type !== 'lecturer') {
-            abort(404);
+        $lecturer = $this->userRepository->find($id);
+
+        if (!$lecturer || $lecturer->user_type !== 'lecturer') {
+            abort(404, 'Lecturer not found');
         }
 
-        $userController = new UserController();
-        return $userController->destroy($lecturer);
+        try {
+            $name = $lecturer->name;
+
+            $this->userRepository->delete($id);
+
+            $this->logActivity('deleted_lecturer', ['lecturer_name' => $name]);
+
+            return redirect()
+                ->route('lecturers.index')
+                ->with('success', "Lecturer '{$name}' deleted successfully!");
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Error deleting lecturer: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Get lecturers statistics
+     * Get lecturers statistics (API)
      *
      * @return \Illuminate\Http\JsonResponse
      */
     public function getStatistics()
     {
+        $stats = $this->userRepository->getLecturerStatistics();
+
         return response()->json([
-            'total_lecturers' => User::where('user_type', 'lecturer')->count(),
-            'active_lecturers' => User::where('user_type', 'lecturer')
-                ->where('status', 'active')
-                ->count(),
-            'departments' => Lecturer::distinct('department')->pluck('department'),
-            'academic_degrees' => Lecturer::distinct('academic_degree')->pluck('academic_degree'),
+            'success' => true,
+            'data' => $stats,
         ]);
     }
 
     /**
-     * Get lecturers by department
+     * Get lecturers by department (API)
      *
-     * @param string $department
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getByDepartment($department)
+    public function getByDepartment(Request $request)
     {
-        $lecturers = User::where('user_type', 'lecturer')
-            ->whereHas('lecturer', function ($query) use ($department) {
-                $query->where('department', $department);
-            })
-            ->get();
+        $department = $request->input('department');
 
-        return response()->json($lecturers);
+        if (!$department) {
+            return response()->json(['error' => 'Department is required'], 400);
+        }
+
+        $lecturers = $this->userRepository->getUsersByType('lecturer', 15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $lecturers,
+        ]);
     }
 
     /**
-     * Get lecturers by degree
+     * Export lecturers data (API)
      *
-     * @param string $degree
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getByDegree($degree)
+    public function export(Request $request)
     {
-        $lecturers = User::where('user_type', 'lecturer')
-            ->whereHas('lecturer', function ($query) use ($degree) {
-                $query->where('academic_degree', $degree);
-            })
-            ->get();
+        $filters = [
+            'user_type' => 'lecturer',
+            'status' => $request->input('status'),
+        ];
 
-        return response()->json($lecturers);
-    }
+        $lecturers = $this->userRepository->getForExport($filters);
 
-    /**
-     * Export lecturers data
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function export()
-    {
-        $lecturers = User::where('user_type', 'lecturer')->with('lecturer')->get();
+        $this->logActivity('exported_lecturers', ['count' => $lecturers->count()]);
 
         return response()->json([
             'export_date' => now()->format('Y-m-d H:i:s'),
             'total_lecturers' => $lecturers->count(),
-            'lecturers' => $lecturers,
+            'lecturers' => $lecturers->map(function ($lecturer) {
+                return [
+                    'id' => $lecturer->id,
+                    'name' => $lecturer->name,
+                    'email' => $lecturer->email,
+                    'phone' => $lecturer->phone,
+                    'status' => ucfirst($lecturer->status),
+                    'created_at' => $lecturer->created_at->format('Y-m-d H:i:s'),
+                ];
+            }),
         ]);
+    }
+
+    /**
+     * Get validation rules for lecturer
+     *
+     * @param string $userType
+     * @return array
+     */
+    private function getValidationRules($userType)
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'user_type' => ['required', \Illuminate\Validation\Rule::in('lecturer')],
+            'employee_code' => ['required', 'string', 'unique:lecturers'],
+            'department' => ['required', 'string', 'max:255'],
+            'specialization' => ['nullable', 'string', 'max:255'],
+            'academic_degree' => ['nullable', 'string', 'max:255'],
+            'hire_date_lecturer' => ['required', 'date'],
+        ];
+    }
+
+    /**
+     * Get validation messages
+     *
+     * @return array
+     */
+    private function getValidationMessages()
+    {
+        return [
+            'name.required' => 'The name field is required.',
+            'email.required' => 'The email field is required.',
+            'email.unique' => 'The email address already exists.',
+            'password.required' => 'The password field is required.',
+            'password.min' => 'The password must be at least 8 characters.',
+            'employee_code.required' => 'The employee code is required.',
+            'employee_code.unique' => 'The employee code already exists.',
+            'department.required' => 'The department field is required.',
+            'hire_date_lecturer.required' => 'The hire date is required.',
+        ];
+    }
+
+    /**
+     * Log activity
+     *
+     * @param string $action
+     * @param array $data
+     * @return void
+     */
+    private function logActivity($action, $data = [])
+    {
+        try {
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'model' => 'Lecturer',
+                'changes' => !empty($data) ? $data : null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log activity: ' . $e->getMessage());
+        }
     }
 }
